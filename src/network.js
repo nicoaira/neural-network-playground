@@ -70,7 +70,7 @@ export const HIDDEN = [
 export const OUTPUT = 'go to the beach?';
 
 // The signs of the weights table on the slides: +++ = 3, ++ = 2, + = 1, ~0 = 0. Neuron 2 uses them
-// times 0.95. With these biases the hidden neurons of afternoons A, B and C light up as on the slides:
+// times 0.95. With these biases the hidden neurons of afternoons 1, 2 and 3 light up as on the slides:
 // 0.90 / 0.90, 0.95 / 0.05 and 0.00 / 1.00.
 const NICE = [3, 2, 2, -2, -3, 0, 0, 0];
 const QUIET = [-1, -2, 0, 1, 1, -3, 2, 0];
@@ -83,11 +83,12 @@ export const W2 = [[6], [6]];
 export const B2 = [-9];
 
 // What you know about an afternoon: [sunshine, °C, sea °C, km/h, rain %, weekend?, arrival hour, towel].
+// The afternoons of the slides are numbered 1, 2, 3 (not A, B, C: bold A and B are the activations and biases).
 export const PRESETS = [
     { key: 'today', label: 'This afternoon', detail: 'a sunny Saturday, arriving at 14:00', raw: [1, 32, 24, 8, 10, true, 14, 'yellow'] },
-    { key: 'A', label: 'Afternoon A', detail: 'a sunny Tuesday, arriving at 17:30', raw: [1, 28, 23, 8, 0, false, 17.5, 'yellow'] },
-    { key: 'B', label: 'Afternoon B', detail: 'a sunny Sunday, arriving at 13:00', raw: [1, 33, 25, 8, 0, true, 13, 'blue'] },
-    { key: 'C', label: 'Afternoon C', detail: 'a rainy Tuesday, arriving at 17:30', raw: [0.1, 19, 20, 35, 80, false, 17.5, 'blue'] },
+    { key: '1', label: 'Afternoon 1', detail: 'a sunny Tuesday, arriving at 17:30', raw: [1, 28, 23, 8, 0, false, 17.5, 'yellow'] },
+    { key: '2', label: 'Afternoon 2', detail: 'a sunny Sunday, arriving at 13:00', raw: [1, 33, 25, 8, 0, true, 13, 'blue'] },
+    { key: '3', label: 'Afternoon 3', detail: 'a rainy Tuesday, arriving at 17:30', raw: [0.1, 19, 20, 35, 80, false, 17.5, 'blue'] },
 ];
 export const sameRaw = (a, b) => a.every((v, k) => v === b[k]);
 

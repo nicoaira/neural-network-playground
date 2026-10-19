@@ -10,7 +10,7 @@ sea temperature, wind, rain forecast, weekend or holiday, late afternoon, towel 
 (*will it be nice?* and *will it be quiet?*) and one output neuron that goes only when the afternoon is nice **and**
 quiet.
 
-- **Step 1: Play with the beach network.** Change any input with the sliders and buttons, or load afternoons A, B and C
+- **Step 1: Play with the beach network.** Change any input with the sliders and buttons, or load afternoons 1, 2 and 3
   of the slides, and see every neuron light up. Point at any part of the drawing to see its name in the notation of
   the course and its value: a line is a weight w^[l]_{j,k}, the Σ half of a neuron its weighted sum z, the σ half its
   activation a, the small badge its bias b. The lines can show the weights or the signals w × x. A plot shows what

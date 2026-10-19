@@ -4,8 +4,8 @@ import { Sym, Yhat } from './Sym';
 import { ViewTabs } from './ui';
 import NetworkDiagram, { keyOf } from './NetworkDiagram';
 
-// The examples of "m examples at once": afternoons A, B and C of the slides, and the one of Step 1.
-const BATCH = [...PRESETS.slice(1).map((p) => ({ label: p.key, detail: p.detail, raw: p.raw })), { label: 'yours', detail: 'the afternoon of Step 1' }];
+// The examples of "m examples at once": afternoons 1, 2 and 3 of the slides, and the one of Step 1.
+const BATCH = [...PRESETS.slice(1).map((p) => ({ label: p.label.toLowerCase(), detail: p.detail, raw: p.raw })), { label: 'yours', detail: 'the afternoon of Step 1' }];
 
 // Which matrix a cell is in decides what it is related to: in layer 1 the inputs are x, in layer 2 they are a^[1].
 const isIn = (c, L) => (L === 1 ? c.type === 'x' : c.type === 'a' && c.l === 1);
