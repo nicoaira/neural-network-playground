@@ -86,7 +86,7 @@ export default function App() {
                         Illustrative weights chosen by hand, not trained (the Deep Learning class slides). Every neuron computes
                         a = σ(<Sym b="w" vec /> · <Sym b="x" vec /> + b), with the sigmoid σ(z) = 1 / (1 + e<sup>−z</sup>). The inputs go in as numbers from 0 to 1:
                         sunshine 0 (cloudy) to 1 (full sun); temperature (T − 15) / 20; sea temperature (S − 15) / 12; wind / 40;
-                        rain forecast / 100; weekend or holiday and late afternoon (arriving after 17:00) 1 or 0; the towel color as a code.
+                        rain forecast / 100; weekend or holiday and late afternoon (arriving after 17:00) 1 or 0; the towel color 1 (yellow) or 0 (blue).
                     </>
                 )}
                 {step === 3 && (

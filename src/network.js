@@ -17,11 +17,11 @@ export const hhmm = (h) => `${String(Math.floor(h)).padStart(2, '0')}:${h % 1 ? 
 
 const sunWords = (v) => (v <= 0.15 ? 'cloudy' : v < 0.45 ? 'mostly cloudy' : v < 0.8 ? 'some sun' : v < 1 ? 'sunny' : 'full sun');
 
-// The towel enters the network as a code: a color is not a number, and its weights are 0.
+// The towel has only two colors, so it enters the network as 1 (yellow) or 0 (blue), like a yes/no
+// input: a color is not a number. Its weights are 0.
 export const TOWELS = [
-    { name: 'yellow', code: 0.5, color: '#f6c453' },
-    { name: 'blue', code: 0.2, color: '#7aa7e0' },
-    { name: 'red', code: 0.8, color: '#e06a5a' },
+    { name: 'yellow', code: 1, color: '#f6c453' },
+    { name: 'blue', code: 0, color: '#7aa7e0' },
 ];
 export const towel = (name) => TOWELS.find((t) => t.name === name);
 
@@ -59,7 +59,7 @@ export const INPUTS = [
     },
     {
         name: 'towel color', short: 'towel', kind: 'towel',
-        toX: (v) => towel(v).code, show: (v) => v, how: (v) => `${v} → ${towel(v).code} (a code: a color is not a number)`,
+        toX: (v) => towel(v).code, show: (v) => v, how: (v) => `${v} → ${towel(v).code}`,
     },
 ];
 
@@ -87,7 +87,7 @@ export const PRESETS = [
     { key: 'today', label: 'This afternoon', detail: 'a sunny Saturday, arriving at 14:00', raw: [1, 32, 24, 8, 10, true, 14, 'yellow'] },
     { key: 'A', label: 'Afternoon A', detail: 'a sunny Tuesday, arriving at 17:30', raw: [1, 28, 23, 8, 0, false, 17.5, 'yellow'] },
     { key: 'B', label: 'Afternoon B', detail: 'a sunny Sunday, arriving at 13:00', raw: [1, 33, 25, 8, 0, true, 13, 'blue'] },
-    { key: 'C', label: 'Afternoon C', detail: 'a rainy Tuesday, arriving at 17:30', raw: [0.1, 19, 20, 35, 80, false, 17.5, 'red'] },
+    { key: 'C', label: 'Afternoon C', detail: 'a rainy Tuesday, arriving at 17:30', raw: [0.1, 19, 20, 35, 80, false, 17.5, 'blue'] },
 ];
 export const sameRaw = (a, b) => a.every((v, k) => v === b[k]);
 

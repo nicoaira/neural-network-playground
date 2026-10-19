@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { INPUTS, HIDDEN, OUTPUT, W1, B1, W2, B2, towel, num, wnum, par } from './network';
+import { INPUTS, HIDDEN, OUTPUT, W1, B1, W2, B2, num, wnum, par } from './network';
 import { Sym, Yhat } from './Sym';
 import { COLORS, actFill } from './ui';
 
@@ -228,14 +228,13 @@ export default function NetworkDiagram({ fw, raw, mode = 'signal', hover, onHove
                 {IN.map((p, k) => {
                     const st = state(`x:${k + 1}`);
                     const v = fw.x[k];
-                    const t = k === 7 && raw ? towel(raw[7]) : null;
                     return (
                         <g key={k} className="net-part net-node" style={{ opacity: OPACITY[st] }} {...hit({ type: 'x', k: k + 1 })}>
                             {st === 'strong' && <circle cx={p.x} cy={p.y} r={R_IN + 7} className="glow-fill" />}
                             <circle cx={p.x} cy={p.y} r={R_IN} strokeWidth={2}
-                                style={{ fill: t ? t.color : actFill(v), stroke: 'var(--node-edge)' }} />
+                                style={{ fill: actFill(v), stroke: 'var(--node-edge)' }} />
                             <text x={p.x} y={p.y + 5} textAnchor="middle" className="net-val"
-                                style={{ fill: t ? '#1e293b' : v > 0.62 ? '#fff' : 'var(--text-color)' }}>{num(v)}</text>
+                                style={{ fill: v > 0.62 ? '#fff' : 'var(--text-color)' }}>{num(v)}</text>
                         </g>
                     );
                 })}
