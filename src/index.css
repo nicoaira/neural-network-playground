@@ -871,3 +871,70 @@ input[type=range]::-webkit-slider-runnable-track {
 @media (max-width: 960px) {
   .train-panel { grid-template-columns: 1fr; }
 }
+
+/* Step 5: build a network */
+.builder-intro, .builder-hints { padding: 1rem 1.5rem; line-height: 1.6; display: flex; flex-direction: column; gap: 0.4rem; }
+.builder-intro h3 { margin: 0; color: var(--accent); }
+.builder-hints .info-card { margin: 0; }
+.builder-controls { display: flex; flex-wrap: wrap; gap: 1rem 2rem; align-items: flex-end; padding: 1rem 1.5rem; }
+.ctl { display: flex; flex-direction: column; gap: 0.4rem; }
+.ctl-lab { font-size: 0.85rem; color: var(--muted-text); display: flex; gap: 0.5rem; }
+.ctl-slider { min-width: 180px; }
+.ctl-buttons { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 0.6rem; }
+.builder-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 660px) minmax(0, 1fr);
+  gap: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  align-items: start;
+}
+.layer-ctl, .neuron-ctl { display: inline-flex; align-items: center; gap: 0.45rem; }
+.round-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--nav-bg);
+  color: var(--text-color);
+  cursor: pointer;
+  padding: 0;
+}
+.round-btn:hover:not(:disabled) { background: var(--primary); color: #fff; border-color: var(--primary); }
+.round-btn:disabled { opacity: 0.35; cursor: default; }
+.neuron-ctl .round-btn { width: 1.3rem; height: 1.3rem; }
+.builder-net { position: relative; }
+.builder-net canvas { display: block; cursor: crosshair; }
+.layer-head {
+  position: absolute;
+  top: 4px;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: 0.82rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+.node-lab { position: absolute; transform: translate(-100%, -50%); font-size: 1rem; pointer-events: none; }
+.node-lab.right-of { transform: translate(0, -50%); font-family: 'STIX Two Text', 'Times New Roman', serif; font-style: italic; font-size: 1.2rem; }
+.plane-caption { font-size: 0.9rem; color: var(--muted-text); min-height: 1.4rem; }
+.builder-plane { display: block; max-width: 100%; }
+.builder-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.builder-metrics .metric-card { padding: 0.6rem 0.4rem; }
+.builder-metrics .metric-value { font-size: 1.15rem; }
+.cost-curve { width: 100%; max-width: 420px; height: auto; }
+.cost-curve .axis { stroke: var(--grid-color); stroke-width: 1; }
+.cost-curve .tick { fill: var(--muted-text); font-size: 10px; font-family: Inter, system-ui, sans-serif; }
+.cost-curve .curve { fill: none; stroke-width: 2.2; }
+.cost-curve .curve.train { stroke: #8b5cf6; }
+.cost-curve .curve.test { stroke: #8b5cf6; stroke-dasharray: 4 3; opacity: 0.6; }
+.curve-legend { display: flex; align-items: center; gap: 0.4rem; color: var(--muted-text); }
+.curve-legend .lg { display: inline-block; width: 1.4rem; border-top: 2.5px solid #8b5cf6; margin-left: 0.6rem; }
+.curve-legend .lg.test { border-top-style: dashed; opacity: 0.6; }
+@media (max-width: 1150px) {
+  .builder-grid { grid-template-columns: 1fr; }
+}

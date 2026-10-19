@@ -5,9 +5,10 @@ import Playground from './Playground';
 import Inside from './Inside';
 import XorView from './XorView';
 import MnistView from './MnistView';
+import BuilderView from './BuilderView';
 import { Sym } from './Sym';
 
-const HASHES = ['#play', '#inside', '#xor', '#digits'];
+const HASHES = ['#play', '#inside', '#xor', '#digits', '#build'];
 const stepOf = (hash) => Math.max(1, HASHES.indexOf(hash) + 1);
 
 export default function App() {
@@ -68,12 +69,16 @@ export default function App() {
                 <div className={`nav-tab ${step === 4 ? 'active' : ''}`} onClick={() => setStep(4)}>
                     Step 4: Handwritten digits
                 </div>
+                <div className={`nav-tab ${step === 5 ? 'active' : ''}`} onClick={() => setStep(5)}>
+                    Step 5: Build a network
+                </div>
             </div>
 
             {step === 1 && <Playground raw={raw} setRaw={setRaw} pTheme={pTheme} />}
             {step === 2 && <Inside raw={raw} setRaw={setRaw} fw={fw} pTheme={pTheme} />}
             {step === 3 && <XorView pTheme={pTheme} />}
             {step === 4 && <MnistView dark={dark} pTheme={pTheme} />}
+            {step === 5 && <BuilderView dark={dark} />}
 
             <div className="footer">
                 {step <= 2 && (
@@ -88,6 +93,12 @@ export default function App() {
                     <>
                         The XOR weights are chosen by hand, not trained. Every neuron computes a = σ(<Sym b="w" vec /> · <Sym b="x" vec /> + b),
                         with the sigmoid σ(z) = 1 / (1 + e<sup>−z</sup>); with the hidden activation switched off, the hidden neurons give a = z.
+                    </>
+                )}
+                {step === 5 && (
+                    <>
+                        The networks of this step learn here, in your browser: gradient descent (Adam) on the logistic cost J of all the
+                        training points at once, one step per epoch. The output neuron gives f = σ(z), the chance of orange.
                     </>
                 )}
                 {step === 4 && (

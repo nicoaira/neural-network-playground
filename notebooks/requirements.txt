@@ -1,0 +1,6 @@
+# The notebook mnist_keras.ipynb (tested with these versions)
+tensorflow>=2.16      # tested with 2.21 (Keras 3.15)
+plotly>=6             # tested with 7.1
+ipywidgets>=8         # tested with 8.1
+ipycanvas>=0.13       # tested with 0.14
+jupyterlab>=4         # or any other Jupyter front end with widgets (VS Code, Colab)
