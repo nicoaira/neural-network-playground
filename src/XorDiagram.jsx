@@ -129,7 +129,7 @@ export default function XorDiagram({ p, fw, x, act, focus, onFocus, checked, onT
                 <React.Fragment key={j}>
                     <div className="net-lab center xor-q hot" style={{ ...pct(c.x, j === 0 ? c.y - R_H - 30 : c.y + R_H + 30), color: NEURON_COLORS[j], opacity: dim(j + 1) }}
                         {...name(j + 1)}>
-                        <div className="strong"><span className={`mini-check ${checked[j] ? 'on' : ''}`} />neuron {j + 1}</div>
+                        <div className="strong">neuron {j + 1}</div>
                         <div className="small-q">{questions[j]}</div>
                     </div>
                     <div className="net-lab left pill" style={{ ...pct(c.x + R_H + 6, c.y + (j === 0 ? -26 : 26)), opacity: dim(j + 1) }}>
@@ -138,7 +138,7 @@ export default function XorDiagram({ p, fw, x, act, focus, onFocus, checked, onT
                 </React.Fragment>
             ))}
             <div className="net-lab center xor-q hot" style={{ ...pct(OUT.x, OUT.y - R_O - 30), color: NEURON_COLORS[2], opacity: dim(3) }} {...name(3)}>
-                <div className="strong"><span className={`mini-check ${checked[2] ? 'on' : ''}`} />output</div>
+                <div className="strong">output</div>
                 <div className="small-q">{questions[2]}</div>
             </div>
             <div className="net-lab left out" style={pct(OUT.x + R_O + 46, OUT.y)}>

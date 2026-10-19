@@ -761,26 +761,3 @@ input[type=range]::-webkit-slider-runnable-track {
 @media (max-width: 700px) {
   .net.xor-net { min-width: 0; }
 }
-/* A neuron's name on the XOR network works as its checkbox */
-.mini-check {
-  display: inline-block;
-  width: 0.8em;
-  height: 0.8em;
-  border: 1.5px solid currentColor;
-  border-radius: 3px;
-  margin-right: 0.35em;
-  vertical-align: -0.08em;
-  position: relative;
-}
-.mini-check.on { background: currentColor; }
-.mini-check.on::after {
-  content: '';
-  position: absolute;
-  left: 0.22em;
-  top: 0.02em;
-  width: 0.2em;
-  height: 0.42em;
-  border: solid var(--solid-bg);
-  border-width: 0 0.12em 0.12em 0;
-  transform: rotate(45deg);
-}
