@@ -4,9 +4,10 @@ import { PRESETS, toX, forward } from './network';
 import Playground from './Playground';
 import Inside from './Inside';
 import XorView from './XorView';
+import MnistView from './MnistView';
 import { Sym } from './Sym';
 
-const HASHES = ['#play', '#inside', '#xor'];
+const HASHES = ['#play', '#inside', '#xor', '#digits'];
 const stepOf = (hash) => Math.max(1, HASHES.indexOf(hash) + 1);
 
 export default function App() {
@@ -42,7 +43,7 @@ export default function App() {
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
                 <div>
                     <div className="title">Neural Network Playground</div>
-                    <div className="subtitle">Should I go to the beach this afternoon? A network with one hidden layer</div>
+                    <div className="subtitle">From one neuron to a network: the beach decision, the XOR problem and handwritten digits</div>
                 </div>
                 <button
                     className="btn btn-secondary"
@@ -64,17 +65,37 @@ export default function App() {
                 <div className={`nav-tab ${step === 3 ? 'active' : ''}`} onClick={() => setStep(3)}>
                     Step 3: The XOR problem
                 </div>
+                <div className={`nav-tab ${step === 4 ? 'active' : ''}`} onClick={() => setStep(4)}>
+                    Step 4: Handwritten digits
+                </div>
             </div>
 
             {step === 1 && <Playground raw={raw} setRaw={setRaw} pTheme={pTheme} />}
             {step === 2 && <Inside raw={raw} setRaw={setRaw} fw={fw} pTheme={pTheme} />}
             {step === 3 && <XorView pTheme={pTheme} />}
+            {step === 4 && <MnistView dark={dark} />}
 
             <div className="footer">
-                Illustrative weights chosen by hand, not trained (the Deep Learning class slides). Every neuron computes
-                a = σ(<Sym b="w" vec /> · <Sym b="x" vec /> + b), with the sigmoid σ(z) = 1 / (1 + e<sup>−z</sup>). The inputs go in as numbers from 0 to 1:
-                sunshine 0 (cloudy) to 1 (full sun); temperature (T − 15) / 20; sea temperature (S − 15) / 12; wind / 40;
-                rain forecast / 100; weekend or holiday and late afternoon (arriving after 17:00) 1 or 0; the towel color as a code.
+                {step <= 2 && (
+                    <>
+                        Illustrative weights chosen by hand, not trained (the Deep Learning class slides). Every neuron computes
+                        a = σ(<Sym b="w" vec /> · <Sym b="x" vec /> + b), with the sigmoid σ(z) = 1 / (1 + e<sup>−z</sup>). The inputs go in as numbers from 0 to 1:
+                        sunshine 0 (cloudy) to 1 (full sun); temperature (T − 15) / 20; sea temperature (S − 15) / 12; wind / 40;
+                        rain forecast / 100; weekend or holiday and late afternoon (arriving after 17:00) 1 or 0; the towel color as a code.
+                    </>
+                )}
+                {step === 3 && (
+                    <>
+                        The XOR weights are chosen by hand, not trained. Every neuron computes a = σ(<Sym b="w" vec /> · <Sym b="x" vec /> + b),
+                        with the sigmoid σ(z) = 1 / (1 + e<sup>−z</sup>); with the hidden activation switched off, the hidden neurons give a = z.
+                    </>
+                )}
+                {step === 4 && (
+                    <>
+                        The digits network was trained on the MNIST handwritten digits (LeCun, Cortes and Burges) with training/train_mnist.py
+                        in this playground’s repository: 784 inputs, 16 + 16 hidden neurons and 10 outputs.
+                    </>
+                )}
             </div>
         </div>
     );

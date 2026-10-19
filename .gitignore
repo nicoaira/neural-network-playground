@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# MNIST, downloaded by training/train_mnist.py
+training/data

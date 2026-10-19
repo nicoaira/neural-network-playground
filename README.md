@@ -35,8 +35,30 @@ quiet.
     that fail), and the labels say what each neuron computes ("at least one on? (OR)"). Switch the hidden activation
     off (a = z) to see the network collapse back to one straight line.
 
+- **Step 4: Handwritten digits.** A small network trained on MNIST: 784 inputs (the 28 × 28 pixels, row by row), two
+  hidden layers of 16 neurons and 10 outputs, one chance per digit. Draw a digit with the mouse, a finger or a pen (or
+  pick one of 30 test images) and every neuron lights up as you draw, with the chance of each digit next to the
+  outputs. The image can be expanded into its 784 inputs (x₁ … x₆, ⋮, x₇₇₉ … x₇₈₄); point at any pixel to bring its
+  input and its lines into the column. Below, the 784 weights of each neuron of layer 1 are drawn as a 28 × 28 image,
+  or multiplied by your drawing. It gets 95.7 % of the 10 000 test images right.
+
 The weights of the beach network are the illustrative ones of the slides, chosen by hand (not trained). The colors of the indices follow
 the slides: layer [l] orange, neuron j blue, input k gray, example (i) green.
+
+## The digits network
+
+`training/train_mnist.py` trains it (PyTorch and torchvision, on the GPU when there is one) and writes
+`src/mnist/model.json`, which the page loads. MNIST is downloaded into `training/data/` (not in git).
+
+```bash
+cd training
+python train_mnist.py                  # 16 + 16 hidden neurons: 95.65 % of the test images (about 25 s on a laptop GPU)
+python train_mnist.py --hidden 32 32   # 32 + 32: 97.7 %
+```
+
+5 000 of the 60 000 training images are kept aside to choose the best epoch; the 10 000 test images are used once, at
+the end. Small random rotations, shifts, size changes and thicker strokes during training help with digits drawn on
+screen.
 
 ## Run locally
 
