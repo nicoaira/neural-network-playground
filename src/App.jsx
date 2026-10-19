@@ -73,7 +73,7 @@ export default function App() {
             {step === 1 && <Playground raw={raw} setRaw={setRaw} pTheme={pTheme} />}
             {step === 2 && <Inside raw={raw} setRaw={setRaw} fw={fw} pTheme={pTheme} />}
             {step === 3 && <XorView pTheme={pTheme} />}
-            {step === 4 && <MnistView dark={dark} />}
+            {step === 4 && <MnistView dark={dark} pTheme={pTheme} />}
 
             <div className="footer">
                 {step <= 2 && (

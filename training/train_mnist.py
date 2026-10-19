@@ -2,22 +2,27 @@
 
     784 inputs (28 x 28 pixels) -> hidden layer 1 -> hidden layer 2 -> 10 outputs (the digits 0-9)
 
-The hidden layers use ReLU, the output softmax (cross-entropy). Training uses the GPU when there is one.
-The 60 000 training images are split into 55 000 for training and 5 000 for choosing the best epoch; the
-10 000 test images are used once, at the end, to report the accuracy.
+The hidden layers use ReLU, the output softmax (cross-entropy). Training uses the GPU when there is one, on the
+60 000 training images; the 10 000 test images are only used to report the accuracy (nothing is chosen with them).
+The learning rate starts at --lr and decreases to 0 along a cosine over the epochs.
 
 Light augmentation (small rotations, shifts, size changes and thicker strokes) makes the network cope better
 with digits drawn with a mouse, which are less tidy than the scanned MNIST ones.
 
 Usage (from this folder; MNIST is downloaded into ./data the first time):
-    python train_mnist.py                       # 16 + 16 hidden neurons, writes ../src/mnist/model.json
+    python train_mnist.py                       # 16 + 16 hidden neurons
     python train_mnist.py --hidden 32 32        # a larger network
-    python train_mnist.py --no-augment --out /tmp/plain.json
+    python train_mnist.py --no-augment --out /tmp/plain.json --history /tmp/plain-history.json
 
-The JSON holds the weights in the orientation of the course (z = x W + b): W1 is 784 x h1 (row k = input k,
-column j = neuron j), W2 is h1 x h2, W3 is h2 x 10. "scale" gives, for each hidden neuron, the activation that
-the playground draws as fully lit (its 99th percentile on the test images); "samples" are a few test images
-(3 per digit, all classified correctly), as base64 of 784 bytes.
+Two files are written:
+  --out (../src/mnist/model.json): the network after the last epoch, which the playground uses. The weights are
+      in the orientation of the course (z = x W + b): W1 is 784 x h1 (row k = input k, column j = neuron j), W2 is
+      h1 x h2, W3 is h2 x 10. "scale" gives, for each hidden neuron, the activation drawn as fully lit (its 99th
+      percentile on the test images); "samples" are 3 test images per digit (classified correctly), as base64 of
+      784 bytes.
+  --history (../public/mnist/history.json): the same network at the start (random weights), after 1/8, 1/4 and
+      1/2 of the first epoch and after every epoch, with the cost J on the training images and the accuracy on the
+      test images. Weights are stored as 16-bit integers: {"s": step, "q": base64 of int16}, w = s * q.
 """
 import argparse
 import base64
@@ -67,10 +72,41 @@ def make_model(h1, h2):
     return nn.Sequential(nn.Flatten(), nn.Linear(784, h1), nn.ReLU(), nn.Linear(h1, h2), nn.ReLU(), nn.Linear(h2, 10))
 
 
+def linears(model):
+    return [m for m in model if isinstance(m, nn.Linear)]
+
+
 @torch.no_grad()
-def accuracy(model, x, y):
+def measure(model, x_tr, y_tr, x_test, y_test):
+    """Cost J (average cross-entropy) on the training images, accuracy on the test images, and the display scale
+    of every hidden neuron (its 99th percentile on the test images)."""
     model.eval()
-    return (model(x).argmax(1) == y).float().mean().item()
+    J = sum(F.cross_entropy(model(x_tr[i:i + 10000]), y_tr[i:i + 10000], reduction="sum").item()
+            for i in range(0, x_tr.shape[0], 10000)) / x_tr.shape[0]
+    acc = (model(x_test).argmax(1) == y_test).float().mean().item()
+    lin = linears(model)
+    a1 = F.relu(lin[0](x_test.flatten(1)))
+    a2 = F.relu(lin[1](a1))
+    scale = [[round(max(float(q), 1e-3), 3) for q in torch.quantile(a, 0.99, dim=0)] for a in (a1, a2)]
+    model.train()
+    return J, acc, scale
+
+
+def weights(model):
+    """The weights in the course orientation (z = x W + b), as numpy arrays."""
+    lin = linears(model)
+    out = {}
+    for n, m in enumerate(lin, start=1):
+        out[f"W{n}"] = m.weight.detach().T.cpu().numpy().astype(np.float64)
+        out[f"b{n}"] = m.bias.detach().cpu().numpy().astype(np.float64)
+    return out
+
+
+def quantize(w):
+    """A weight matrix as 16-bit integers: w ≈ s * q."""
+    s = max(float(np.abs(w).max()), 1e-12) / 32767
+    q = np.round(w / s).astype("<i2")
+    return {"s": s, "q": base64.b64encode(q.tobytes()).decode()}
 
 
 def main():
@@ -82,6 +118,7 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--no-augment", action="store_true")
     ap.add_argument("--out", type=pathlib.Path, default=HERE.parent / "src" / "mnist" / "model.json")
+    ap.add_argument("--history", type=pathlib.Path, default=HERE.parent / "public" / "mnist" / "history.json")
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
@@ -89,23 +126,31 @@ def main():
     gen = torch.Generator(device=device).manual_seed(args.seed)
     print(f"device: {device} ({torch.cuda.get_device_name(0) if device.type == 'cuda' else 'cpu'})")
 
-    x_all, y_all, x_test, y_test = load(device)
-    perm = torch.randperm(x_all.shape[0], generator=torch.Generator().manual_seed(args.seed)).to(device)
-    x_tr, y_tr = x_all[perm[5000:]], y_all[perm[5000:]]
-    x_val, y_val = x_all[perm[:5000]], y_all[perm[:5000]]
-
+    x_tr, y_tr, x_test, y_test = load(device)
     h1, h2 = args.hidden
     model = make_model(h1, h2).to(device)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
-    steps = args.epochs * math.ceil(x_tr.shape[0] / args.batch)
-    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=steps)
+    per_epoch = math.ceil(x_tr.shape[0] / args.batch)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs * per_epoch)
+    # The moments recorded in the history: the start, 1/8, 1/4 and 1/2 of the first epoch, then every epoch.
+    early = {round(per_epoch * f): f for f in (1 / 8, 1 / 4, 1 / 2)}
 
-    best = (-1.0, None, 0)
+    history = []
+
+    def record(epoch):
+        J, acc, scale = measure(model, x_tr, y_tr, x_test, y_test)
+        w = weights(model)
+        history.append({
+            "epoch": round(epoch, 4), "J": round(J, 4), "accuracy": round(acc, 4), "scale": scale,
+            **{k: quantize(v) if k.startswith("W") else np.round(v, 4).tolist() for k, v in w.items()},
+        })
+        return J, acc
+
+    record(0)
     t0 = time.time()
     for epoch in range(1, args.epochs + 1):
-        model.train()
         order = torch.randperm(x_tr.shape[0], device=device, generator=gen)
-        for i in range(0, x_tr.shape[0], args.batch):
+        for s, i in enumerate(range(0, x_tr.shape[0], args.batch), start=1):
             idx = order[i:i + args.batch]
             xb = x_tr[idx] if args.no_augment else augment(x_tr[idx], gen)
             loss = F.cross_entropy(model(xb), y_tr[idx])
@@ -113,48 +158,40 @@ def main():
             loss.backward()
             opt.step()
             sched.step()
-        val = accuracy(model, x_val, y_val)
-        if val > best[0]:
-            best = (val, {k: v.detach().clone() for k, v in model.state_dict().items()}, epoch)
+            if epoch == 1 and s in early:
+                record(early[s])
+        J, acc = record(epoch)
         if epoch % 5 == 0 or epoch == 1:
-            print(f"epoch {epoch:3d}  loss {loss.item():.3f}  validation accuracy {val:.4f}  ({time.time() - t0:.0f} s)")
+            print(f"epoch {epoch:3d}  cost J {J:.4f}  test accuracy {acc:.4f}  ({time.time() - t0:.0f} s)")
 
-    model.load_state_dict(best[1])
-    test_acc = accuracy(model, x_test, y_test)
-    train_acc = accuracy(model, x_tr, y_tr)
-    print(f"best epoch {best[2]}: validation {best[0]:.4f}, training {train_acc:.4f}, TEST {test_acc:.4f}")
-
-    # Export: weights in the course orientation, display scales, a few test images.
-    lin = [m for m in model if isinstance(m, nn.Linear)]
+    # The network after the last epoch: the one the playground uses.
+    J, test_acc, scale = measure(model, x_tr, y_tr, x_test, y_test)
     with torch.no_grad():
-        a1 = F.relu(lin[0](x_test.flatten(1)))
-        a2 = F.relu(lin[1](a1))
-        pred = lin[2](a2).argmax(1)
-    # How bright to draw each hidden neuron: fully lit at its own 99th percentile on the test images.
-    scale = [[round(max(float(q), 1e-3), 3) for q in torch.quantile(a, 0.99, dim=0)] for a in (a1, a2)]
-    dead = [int((a.max(0).values == 0).sum()) for a in (a1, a2)]
-    r4 = lambda t: np.round(t.detach().cpu().numpy().astype(float), 4).tolist()
+        model.eval()
+        pred = model(x_test).argmax(1)
+        train_acc = (model(x_tr).argmax(1) == y_tr).float().mean().item()
+    print(f"after {args.epochs} epochs: cost J {J:.4f}, training accuracy {train_acc:.4f}, TEST accuracy {test_acc:.4f}")
     samples = []
     for digit in range(10):
         ok = ((y_test == digit) & (pred == digit)).nonzero().flatten()[:3].tolist()
         for i in ok:
             img = (x_test[i, 0].cpu().numpy() * 255).round().astype(np.uint8)
             samples.append({"label": digit, "index": i, "pixels": base64.b64encode(img.tobytes()).decode()})
+    w = weights(model)
     out = {
         "about": "Step 4 of the neural network playground: a small MLP trained on MNIST (training/train_mnist.py).",
         "layers": [784, h1, h2, 10],
-        "W1": r4(lin[0].weight.T), "b1": r4(lin[0].bias),
-        "W2": r4(lin[1].weight.T), "b2": r4(lin[1].bias),
-        "W3": r4(lin[2].weight.T), "b3": r4(lin[2].bias),
+        **{k: np.round(v, 4).tolist() for k, v in w.items()},
         "scale": scale,
-        "accuracy": {"test": round(test_acc, 4), "training": round(train_acc, 4), "validation": round(best[0], 4)},
-        "training": {"epochs": args.epochs, "best_epoch": best[2], "batch": args.batch, "lr": args.lr,
+        "accuracy": {"test": round(test_acc, 4), "training": round(train_acc, 4)},
+        "training": {"epochs": args.epochs, "batch": args.batch, "lr": args.lr, "schedule": "cosine",
                      "augment": not args.no_augment, "seed": args.seed, "torch": torch.__version__},
         "samples": samples,
     }
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(out, separators=(",", ":")))
-    print(f"wrote {args.out} ({args.out.stat().st_size / 1024:.0f} KB); neurons never active on the test images: {dead}")
+    for path, data in ((args.out, out), (args.history, {"layers": [784, h1, h2, 10], "snapshots": history})):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, separators=(",", ":")))
+        print(f"wrote {path} ({path.stat().st_size / 1024:.0f} KB)")
 
 
 if __name__ == "__main__":

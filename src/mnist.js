@@ -13,16 +13,17 @@ export const SAMPLES = MODEL.samples.map((s) => {
     return { label: s.label, index: s.index, pixels: Float32Array.from(bytes, (v) => v / 255) };
 });
 
-// Forward propagation, layer after layer (z = x W + b). Hidden layers: a = max(0, z). Output: softmax.
-export function forward(x) {
+// Forward propagation through a network (the trained one, or one moment of its training), layer after layer
+// (z = x W + b). Hidden layers: a = max(0, z). Output: softmax.
+export function forward(x, net = MODEL) {
     const layer = (inp, W, b, hidden) => b.map((bj, j) => {
         let z = bj;
         for (let k = 0; k < inp.length; k++) if (inp[k] !== 0) z += inp[k] * W[k][j];
         return hidden ? Math.max(0, z) : z;
     });
-    const a1 = layer(x, MODEL.W1, MODEL.b1, true);
-    const a2 = layer(a1, MODEL.W2, MODEL.b2, true);
-    const z3 = layer(a2, MODEL.W3, MODEL.b3, false);
+    const a1 = layer(x, net.W1, net.b1, true);
+    const a2 = layer(a1, net.W2, net.b2, true);
+    const z3 = layer(a2, net.W3, net.b3, false);
     const m = Math.max(...z3);
     const e = z3.map((z) => Math.exp(z - m));
     const sum = e.reduce((s, v) => s + v, 0);
@@ -109,7 +110,33 @@ export function preprocess(gray, w, h) {
 }
 
 // Column j of W1: the 784 weights of neuron j of layer 1, as an image.
-export const weightsOf = (j) => Float32Array.from(MODEL.W1, (row) => row[j]);
+export const weightsOf = (j, net = MODEL) => Float32Array.from(net.W1, (row) => row[j]);
+
+// The training history (public/mnist/history.json, written by training/train_mnist.py): the network at the start
+// and after each epoch, with the cost J on the training images and the accuracy on the test images. It is only
+// downloaded when it is needed. Each moment becomes a network like MODEL: { epoch, J, accuracy, scale, W1, b1, … }.
+let historyPromise = null;
+const bytesOf = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+const matrix = ({ s, q }, rows, cols) => {
+    const ints = new Int16Array(bytesOf(q).buffer);
+    return Array.from({ length: rows }, (_, r) => Float32Array.from(ints.subarray(r * cols, (r + 1) * cols), (v) => v * s));
+};
+export function loadHistory() {
+    historyPromise ??= fetch(`${import.meta.env.BASE_URL}mnist/history.json`)
+        .then((r) => {
+            if (!r.ok) throw new Error(`history.json: ${r.status}`);
+            return r.json();
+        })
+        .then((h) => h.snapshots.map((sn) => ({
+            epoch: sn.epoch, J: sn.J, accuracy: sn.accuracy, scale: sn.scale,
+            W1: matrix(sn.W1, N_IN, H1), b1: sn.b1, W2: matrix(sn.W2, H1, H2), b2: sn.b2, W3: matrix(sn.W3, H2, N_OUT), b3: sn.b3,
+        })))
+        .catch((e) => {
+            historyPromise = null;
+            throw e;
+        });
+    return historyPromise;
+}
 
 // Paint a 28 × 28 image into a canvas: 'gray' (the digit, white on black) or 'signed' (orange +, blue −,
 // scaled by the largest |value|).

@@ -1,18 +1,95 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Eraser, Shuffle, Maximize2, Minimize2 } from 'lucide-react';
-import { MODEL, SAMPLES, H1, H2, N_IN, forward, weightsOf } from './mnist';
+import { Eraser, Shuffle, Maximize2, Minimize2, Play, Pause, RotateCcw } from 'lucide-react';
+import { MODEL, SAMPLES, H1, H2, N_IN, forward, weightsOf, loadHistory } from './mnist';
 import { num } from './network';
 import { Sym } from './Sym';
-import { COLORS, Toggle, ViewTabs } from './ui';
+import { COLORS, Toggle, ViewTabs, Plot, baseLayout, PLOT_CONFIG } from './ui';
 import DrawPad from './DrawPad';
 import MnistDiagram, { TinyImage } from './MnistDiagram';
 
-const WEIGHTS = Array.from({ length: H1 }, (_, j) => weightsOf(j));
 const FIRST = SAMPLES.findIndex((s) => s.label === 3);
 const pct = (v) => `${(100 * v).toFixed(1)} %`;
+const fmtEpoch = (e) => (Number.isInteger(e) ? String(e) : String(Number(e.toFixed(3))));
+const EPOCH_MS = 450; // how long each epoch lasts on screen while training
+
+// Training: the cost J and the accuracy, epoch after epoch, with the controls to start, pause and move along it.
+function TrainingPanel({ history, snap, playing, loading, error, onTrain, onPause, onSeek, onTrained, pTheme }) {
+    const last = history ? history.length - 1 : 0;
+    const upTo = history ? history.slice(0, (snap ?? last) + 1) : [];
+    const cur = history && snap != null ? history[snap] : null;
+    const epochs = history ? history[last].epoch : MODEL.training.epochs;
+    return (
+        <div className="glass-panel train-panel">
+            <div className="panel train-left">
+                <h3>Training</h3>
+                <div className="info-card">
+                    Training starts from <strong>random weights</strong>: the network answers at random, about 1 time in 10. After each
+                    pass over the 60 000 training images (an <strong>epoch</strong>), gradient descent has changed every weight a little:
+                    the cost J goes down and the accuracy on the test images goes up. Watch the images of layer 1 below take shape, and
+                    the answer for your drawing change.
+                </div>
+                <div className="btn-row">
+                    {playing ? (
+                        <button className="btn" type="button" onClick={onPause}><Pause size={18} /> Pause</button>
+                    ) : (
+                        <button className="btn" type="button" onClick={onTrain} disabled={loading}>
+                            <Play size={18} /> {loading ? 'Starting…' : cur && snap < last ? 'Continue' : 'Train the network'}
+                        </button>
+                    )}
+                    <button className="btn btn-secondary" type="button" onClick={onTrained} disabled={snap == null}>
+                        <RotateCcw size={16} /> The trained network
+                    </button>
+                </div>
+                {error && <div className="small bad-text">{error}</div>}
+                {history && (
+                    <div className="slider-container in-row">
+                        <div className="slider-header">
+                            <span>epoch</span>
+                            <span className="in-val">{fmtEpoch((cur ?? history[last]).epoch)} of {epochs}</span>
+                        </div>
+                        <input type="range" min={0} max={last} step={1} value={snap ?? last} onChange={(e) => onSeek(Number(e.target.value))}
+                            aria-label="epoch" />
+                    </div>
+                )}
+                <div className="metrics-grid">
+                    <div className="metric-card">
+                        <div className="metric-value">{cur ? cur.J.toFixed(3) : history ? history[last].J.toFixed(3) : '—'}</div>
+                        <div className="metric-label" style={{ textTransform: 'none' }}>cost J on the training images</div>
+                    </div>
+                    <div className="metric-card">
+                        <div className="metric-value">{pct(cur ? cur.accuracy : MODEL.accuracy.test)}</div>
+                        <div className="metric-label" style={{ textTransform: 'none' }}>right on the 10 000 test images</div>
+                    </div>
+                </div>
+            </div>
+            <div className="panel">
+                {history ? (
+                    <Plot
+                        data={[
+                            { x: upTo.map((h) => h.epoch), y: upTo.map((h) => h.J), name: 'cost J', mode: 'lines+markers', line: { color: COLORS.quiet, width: 3 }, marker: { size: 5 }, hovertemplate: 'epoch %{x}<br>J = %{y:.3f}<extra></extra>' },
+                            { x: upTo.map((h) => h.epoch), y: upTo.map((h) => 100 * h.accuracy), name: 'accuracy (%)', yaxis: 'y2', mode: 'lines+markers', line: { color: COLORS.go, width: 3 }, marker: { size: 5 }, hovertemplate: 'epoch %{x}<br>%{y:.1f} % right<extra></extra>' },
+                        ]}
+                        layout={{
+                            ...baseLayout(pTheme),
+                            showlegend: true,
+                            legend: { orientation: 'h', x: 0, y: 1.14 },
+                            margin: { t: 30, r: 55, l: 55, b: 45 },
+                            xaxis: { title: { text: 'epoch' }, range: [-0.5, epochs + 0.5], gridcolor: pTheme.gridColor, zeroline: false },
+                            yaxis: { title: { text: 'cost J' }, range: [0, 2.4], gridcolor: pTheme.gridColor, zeroline: false },
+                            yaxis2: { title: { text: 'accuracy (%)' }, range: [0, 100], overlaying: 'y', side: 'right', showgrid: false, zeroline: false },
+                        }}
+                        config={PLOT_CONFIG} useResizeHandler style={{ width: '100%', height: '300px' }}
+                    />
+                ) : (
+                    <div className="train-empty muted">Press <strong>Train the network</strong> to watch it learn, from random weights to the trained network.</div>
+                )}
+            </div>
+        </div>
+    );
+}
 
 // Step 4: a network that reads handwritten digits. Draw one, or pick a test image, and watch every neuron.
-export default function MnistView({ dark }) {
+export default function MnistView({ dark, pTheme }) {
     const pad = useRef(null);
     const [x, setX] = useState(SAMPLES[FIRST].pixels);
     const [sample, setSample] = useState(FIRST); // the test image shown; null while you draw
@@ -23,7 +100,41 @@ export default function MnistView({ dark }) {
     useEffect(() => {
         if (sample == null) pad.current?.refresh();
     }, [center]); // eslint-disable-line react-hooks/exhaustive-deps
-    const fw = useMemo(() => forward(x), [x]);
+    // Training: the network at each moment of its training (null until it is needed), and the moment shown
+    // (null: the trained network).
+    const [history, setHistory] = useState(null);
+    const [snap, setSnap] = useState(null);
+    const [playing, setPlaying] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const net = history && snap != null ? history[snap] : MODEL;
+    useEffect(() => {
+        if (!playing || !history) return undefined;
+        if (snap >= history.length - 1) {
+            setPlaying(false);
+            return undefined;
+        }
+        const gap = history[snap + 1].epoch - history[snap].epoch;
+        const id = setTimeout(() => setSnap(snap + 1), snap === 0 ? 1000 : Math.max(250, EPOCH_MS * gap));
+        return () => clearTimeout(id);
+    }, [playing, snap, history]);
+    const train = async () => {
+        setError(null);
+        setLoading(true);
+        try {
+            const h = history ?? await loadHistory();
+            setHistory(h);
+            if (snap == null || snap >= h.length - 1) setSnap(0);
+            setPlaying(true);
+        } catch (e) {
+            setError(`The training could not start (${e.message}).`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fw = useMemo(() => forward(x, net), [x, net]);
+    const weights = useMemo(() => Array.from({ length: H1 }, (_, j) => weightsOf(j, net)), [net]);
     const blank = !x.some((v) => v > 0);
 
     useEffect(() => pad.current?.show(SAMPLES[FIRST].pixels), []);
@@ -42,7 +153,7 @@ export default function MnistView({ dark }) {
         setSample(null);
         setX(new Float32Array(N_IN));
     };
-    const tileValues = useMemo(() => (tiles === 'w' ? WEIGHTS : WEIGHTS.map((w) => w.map((v, i) => v * x[i]))), [tiles, x]);
+    const tileValues = useMemo(() => (tiles === 'w' ? weights : weights.map((w) => w.map((v, i) => v * x[i]))), [tiles, x, weights]);
 
     return (
         <>
@@ -52,7 +163,8 @@ export default function MnistView({ dark }) {
                     A picture of a digit is <strong>28 × 28 = 784 pixels</strong>, each a number from 0 (black) to 1 (white). The network
                     reads them as 784 inputs, row by row, passes them through two hidden layers of {H1} and {H2} neurons, and gives one
                     chance for each digit from 0 to 9. It learned its {(784 * H1 + H1 + H1 * H2 + H2 + H2 * 10 + 10).toLocaleString()} weights
-                    and biases from 55 000 example images (the MNIST dataset), and gets {pct(MODEL.accuracy.test)} of 10 000 new test images right.
+                    and biases from the 60 000 training images of the MNIST dataset, and gets {pct(MODEL.accuracy.test)} of 10 000 new test
+                    images right.
                 </div>
             </div>
 
@@ -101,12 +213,15 @@ export default function MnistView({ dark }) {
                 <div className="panel">
                     <div className="panel-header">
                         <h3>The network, live</h3>
+                        {snap != null && history && (
+                            <span className="train-badge">epoch {fmtEpoch(history[snap].epoch)} · {pct(history[snap].accuracy)} right</span>
+                        )}
                         <button className="btn btn-secondary btn-small" type="button" onClick={() => setExpanded(!expanded)}>
                             {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                             {expanded ? 'Show the image as one block' : 'Expand the image into its 784 inputs'}
                         </button>
                     </div>
-                    <MnistDiagram fw={fw} expanded={expanded} hov={hov} onHover={setHov} dark={dark} />
+                    <MnistDiagram fw={fw} net={net} expanded={expanded} hov={hov} onHover={setHov} dark={dark} />
                     <div className="info-card">
                         {expanded ? (
                             <>
@@ -123,6 +238,11 @@ export default function MnistView({ dark }) {
                 </div>
             </div>
 
+            <TrainingPanel history={history} snap={snap} playing={playing} loading={loading} error={error} pTheme={pTheme}
+                onTrain={train} onPause={() => setPlaying(false)}
+                onSeek={(k) => { setPlaying(false); setSnap(k); }}
+                onTrained={() => { setPlaying(false); setSnap(null); }} />
+
             <div className="glass-panel gallery-panel">
                 <div className="panel-header">
                     <h3>What each neuron of layer 1 looks at</h3>
@@ -130,7 +250,7 @@ export default function MnistView({ dark }) {
                 </div>
                 <div className="gallery">
                     {tileValues.map((vals, j) => {
-                        const lit = Math.min(1, fw.a1[j] / MODEL.scale[0][j]);
+                        const lit = Math.min(1, fw.a1[j] / net.scale[0][j]);
                         return (
                             <div key={j} className={`w-tile ${hov?.type === 'h1' && hov.j === j ? 'on' : ''}`}
                                 onMouseEnter={() => setHov({ type: 'h1', j })} onMouseLeave={() => setHov(null)}>

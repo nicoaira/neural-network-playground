@@ -51,7 +51,7 @@ export function TinyImage({ values, mode = 'gray', dark = true, size = 56, class
 }
 
 // What a part of the network is, for the tooltip. hov: { type: 'x', i } | { type: 'h1' | 'h2', j } | { type: 'out', d }.
-function Info({ hov, fw, dark }) {
+function Info({ hov, fw, net, dark }) {
     if (hov.type === 'x') {
         const r = Math.floor(hov.i / SIZE) + 1;
         const c = (hov.i % SIZE) + 1;
@@ -69,7 +69,7 @@ function Info({ hov, fw, dark }) {
                 <div className="tip-title"><Sym b="a" l={1} j={hov.j + 1} /> = {num(fw.a1[hov.j])}</div>
                 <div>neuron {hov.j + 1} of layer 1: its 784 weights, one per pixel</div>
                 <div className="tip-img">
-                    <TinyImage values={weightsOf(hov.j)} mode="signed" dark={dark} size={112} />
+                    <TinyImage values={weightsOf(hov.j, net)} mode="signed" dark={dark} size={112} />
                     <div className="tip-note">
                         <span style={{ color: COLORS.pos }}>Orange</span> pixels push it up when they are white,{' '}
                         <span style={{ color: COLORS.neg }}>blue</span> ones hold it back.
@@ -79,7 +79,7 @@ function Info({ hov, fw, dark }) {
         );
     }
     if (hov.type === 'h2') {
-        const ws = MODEL.W3[hov.j];
+        const ws = Array.from(net.W3[hov.j]);
         const up = ws.indexOf(Math.max(...ws));
         const down = ws.indexOf(Math.min(...ws));
         return (
@@ -104,7 +104,7 @@ function Info({ hov, fw, dark }) {
 
 // The digits network: the image (as one block, or expanded into its 784 inputs), 16 + 16 hidden neurons
 // and 10 outputs, lit by their activations. hov / onHover: the part pointed at, shared with the page.
-export default function MnistDiagram({ fw, expanded, hov, onHover, dark }) {
+export default function MnistDiagram({ fw, net = MODEL, expanded, hov, onHover, dark }) {
     const wrap = useRef(null);
     const [tip, setTip] = useState(null);
     const imageURL = useMemo(() => {
@@ -148,18 +148,18 @@ export default function MnistDiagram({ fw, expanded, hov, onHover, dark }) {
     const lineDim = (from, j, to, k) => anyNeuron && !focusOn(from, j) && !focusOn(to, k);
 
     const inLines = expanded ? signalLines(
-        inputs.flatMap((p) => L1.map((b, j) => ({ a: { x: p.x + R_IN, y: p.y }, b, s: fw.x[p.i] * MODEL.W1[p.i][j], i: p.i, j }))),
+        inputs.flatMap((p) => L1.map((b, j) => ({ a: { x: p.x + R_IN, y: p.y }, b, s: fw.x[p.i] * net.W1[p.i][j], i: p.i, j }))),
         (q) => `in${q.i}-${q.j}`, (q) => (hov?.type === 'x' ? hov.i !== q.i : lineDim('x', q.i, 'h1', q.j)),
     ) : null;
     const l12 = signalLines(
-        L1.flatMap((a, j) => L2.map((b, k) => ({ a, b, s: fw.a1[j] * MODEL.W2[j][k], j, k }))),
+        L1.flatMap((a, j) => L2.map((b, k) => ({ a, b, s: fw.a1[j] * net.W2[j][k], j, k }))),
         (q) => `h${q.j}-${q.k}`, (q) => lineDim('h1', q.j, 'h2', q.k),
     );
     const l23 = signalLines(
-        L2.flatMap((a, j) => OUT.map((b, d) => ({ a, b, s: fw.a2[j] * MODEL.W3[j][d], j, k: d }))),
+        L2.flatMap((a, j) => OUT.map((b, d) => ({ a, b, s: fw.a2[j] * net.W3[j][d], j, k: d }))),
         (q) => `o${q.j}-${q.k}`, (q) => lineDim('h2', q.j, 'out', q.k),
     );
-    const scale = MODEL.scale;
+    const scale = net.scale;
     const hiCell = hov?.type === 'x' ? cellCenter(hov.i) : null;
 
     const tipStyle = tip && {
@@ -265,7 +265,7 @@ export default function MnistDiagram({ fw, expanded, hov, onHover, dark }) {
 
                 {tip && hov && (
                     <div className="tooltip" style={tipStyle}>
-                        <Info hov={hov} fw={fw} dark={dark} />
+                        <Info hov={hov} fw={fw} net={net} dark={dark} />
                     </div>
                 )}
             </div>
