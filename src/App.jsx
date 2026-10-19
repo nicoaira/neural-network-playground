@@ -34,6 +34,7 @@ export default function App() {
     const pTheme = {
         fontColor: dark ? '#e2e8f0' : '#1e293b',
         gridColor: dark ? '#334155' : '#cbd5e1',
+        labelBg: dark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.9)',
     };
 
     return (

@@ -717,7 +717,7 @@ input[type=range]::-webkit-slider-runnable-track {
 .guide ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.5rem; }
 
 @media (max-width: 960px) {
-  .play-grid, .matrix-net { grid-template-columns: 1fr; }
+  .play-grid, .matrix-net, .cards-row { grid-template-columns: 1fr; }
   .neuron-grid > .panel:first-child { position: static; }
 }
 
@@ -750,12 +750,14 @@ input[type=range]::-webkit-slider-runnable-track {
 }
 .neuron-card.focus { box-shadow: 0 0 0 2px var(--hl); }
 .neuron-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
-.slider-trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem 0.8rem; }
-.slider-trio .slider-header { flex-wrap: wrap; font-size: 0.82rem; }
+.weights-panel { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+.weights-head { display: flex; align-items: center; gap: 0.75rem 1.5rem; flex-wrap: wrap; }
+.weights-head h3 { margin: 0; color: var(--accent); }
+.cards-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.cards-row .slider-header { flex-wrap: wrap; font-size: 0.85rem; }
 .xor-net .net-lab { font-size: max(10px, calc(100cqw * 15 / 690)); }
 .xor-q { line-height: 1.2; }
 .xor-q .small-q { font-size: 0.85em; font-weight: 600; }
 @media (max-width: 700px) {
   .net.xor-net { min-width: 0; }
-  .slider-trio { grid-template-columns: 1fr; }
 }

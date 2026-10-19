@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Play, RotateCcw } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 import { sigmoid, num, wnum, par } from './network';
 import {
-    XOR, CLOUD, PRESETS, ONE_START, xorForward, neuronLogic, outputLogic, networkLogic, range, lineInBox, halfPlaneInBox,
+    XOR, PRESETS, ONE_START, xorForward, neuronLogic, outputLogic, networkLogic, range, lineInBox, halfPlaneInBox,
 } from './xor';
 import { Sym, Yhat } from './Sym';
 import { Plot, COLORS, Metric, Toggle, ViewTabs, baseLayout, PLOT_CONFIG } from './ui';
@@ -10,9 +9,6 @@ import XorDiagram, { NEURON_COLORS } from './XorDiagram';
 
 const BOX = [-0.5, 1.5];
 const G = range(-0.5, 1.5, 161);
-const GRID_C = range(-0.5, 1.5, 9);
-const GRID_S = range(-0.5, 1.5, 41);
-const MORPH_MS = 1600;
 const TINT = { out: 'rgba(16, 185, 129, 0.24)' };
 // The yes side of each hidden neuron is hatched (/ amber, \\ violet): where both say yes the hatches cross.
 const HATCH = {
@@ -22,8 +18,8 @@ const HATCH = {
 
 const fmtPt = (pt) => `(${num(pt.x1, pt.x1 % 1 ? 2 : 0)}, ${num(pt.x2, pt.x2 % 1 ? 2 : 0)})`;
 
-// The points as Plotly traces: y = 0 blue circles, y = 1 orange crosses (the four XOR points large, the
-// cloud around them small), mistakes ringed in red, the highlighted XOR point ringed.
+// The points as Plotly traces: y = 0 blue circles, y = 1 orange crosses, mistakes ringed in red, the highlighted
+// XOR point ringed.
 function pointTraces({ pts, xy, yhat, showMistakes, hl, pTheme }) {
     const pick = (f) => pts.map((pt, n) => ({ pt, n })).filter(({ pt, n }) => f(pt, n));
     const scatter = (sel, marker) => ({
@@ -160,28 +156,12 @@ function TwoNeurons({ pTheme }) {
     const [p, setP] = useState(PRESETS[0].p);
     const [act, setAct] = useState('sigmoid');
     const [show, setShow] = useState({ 1: true, 2: true, out: true });
-    const [cloud, setCloud] = useState(false);
     const [focus, setFocus] = useState(null); // the neuron pointed at: 1, 2 or 3 (the output)
     const [sel, setSel] = useState(1); // the XOR point shown on the network
     const [hlRow, setHlRow] = useState(null);
-    const [t, setT] = useState(1); // 0: the points where they are (x⃗); 1: where the hidden layer puts them (a⃗^[1])
-    const raf = useRef(null);
     const set = (key) => (v) => setP({ ...p, [key]: v });
 
-    useEffect(() => () => cancelAnimationFrame(raf.current), []);
-    const playMorph = () => {
-        cancelAnimationFrame(raf.current);
-        const t0 = performance.now();
-        const step = (now) => {
-            const s = Math.min(1, (now - t0) / MORPH_MS);
-            setT(Math.round(100 * (s < 0.5 ? 2 * s * s : 1 - 2 * (1 - s) ** 2)) / 100);
-            if (s < 1) raf.current = requestAnimationFrame(step);
-        };
-        setT(0);
-        raf.current = requestAnimationFrame(step);
-    };
-
-    const pts = useMemo(() => [...(cloud ? CLOUD.map((pt) => ({ ...pt, big: false })) : []), ...XOR.map((pt, i) => ({ ...pt, big: true, i }))], [cloud]);
+    const pts = XOR.map((pt, i) => ({ ...pt, big: true, i }));
     const fws = pts.map((pt) => xorForward(p, pt.x1, pt.x2, act));
     const yhat = fws.map((r) => r.yhat);
     const big = XOR.map((pt) => xorForward(p, pt.x1, pt.x2, act));
@@ -213,72 +193,50 @@ function TwoNeurons({ pTheme }) {
             }
         }
     }
+    // Pointing at a neuron (on the network or at its card) shows it alone: its decision boundary, its yes side,
+    // and its answer at each of the four points.
+    const shown = focus ? { 1: focus === 1, 2: focus === 2, out: focus === 3 } : show;
     const plane = [];
     const ann = [];
-    if (show.out) {
+    if (shown.out) {
         plane.push({
             type: 'heatmap', x: G, y: G, z: fGrid.map((row) => row.map((f) => (f >= 0.5 ? 1 : null))), zsmooth: false, showscale: false,
             colorscale: [[0, TINT.out], [1, TINT.out]], hoverinfo: 'skip',
         });
     }
     [1, 2].forEach((j) => {
-        if (!show[j]) return;
+        if (!shown[j]) return;
         const w = neuronLine({
             w1: p[`w1${j}1`], w2: p[`w1${j}2`], b: p[`b1${j}`], box: [BOX, BOX], color: NEURON_COLORS[j - 1], hatch: HATCH[j],
-            label: `neuron ${j} says yes`, width: focus === j ? 4.5 : 2.5, opacity: focus && focus !== j && focus !== 3 ? 0.35 : 1,
+            label: focus ? '' : `neuron ${j} says yes`, width: focus === j ? 4 : 2.5,
             at: ats[j - 1],
         });
         plane.push(...w.traces);
         ann.push(...w.annotations);
     });
-    if (show.out) {
+    if (shown.out) {
         plane.push({
             type: 'contour', x: G, y: G, z: fGrid, autocontour: false, contours: { start: 0.5, end: 0.5, size: 1, coloring: 'lines' },
             colorscale: [[0, COLORS.go], [1, COLORS.go]], line: { width: focus === 3 ? 13 : 9 }, opacity: 0.85, showscale: false, hoverinfo: 'skip',
         });
     }
     plane.push(...pointTraces({ pts, xy: pts.map((pt) => [pt.x1, pt.x2]), yhat, showMistakes: true, hl, pTheme }));
-
-    // ── what the output neuron sees: every point (and a grid) on its way from x⃗ to a⃗^[1] ──
-    const move = (x1, x2) => {
-        const r = xorForward(p, x1, x2, act);
-        return [(1 - t) * x1 + t * r.a1, (1 - t) * x2 + t * r.a2];
-    };
-    const gridLine = (strong) => {
-        const xs = [];
-        const ys = [];
-        GRID_C.filter((c) => (c === 0 || c === 1) === strong).forEach((c) => {
-            for (const along of [true, false]) {
-                GRID_S.forEach((s) => {
-                    const [u, v] = move(along ? c : s, along ? s : c);
-                    xs.push(u);
-                    ys.push(v);
-                });
-                xs.push(null);
-                ys.push(null);
-            }
+    if (focus) {
+        const color = NEURON_COLORS[focus - 1];
+        XOR.forEach((pt, i) => {
+            const r = big[i];
+            const v = [r.a1, r.a2, r.f][focus - 1];
+            ann.push({
+                x: pt.x1, y: pt.x2, xref: 'x', yref: 'y', yshift: -27, showarrow: false, borderpad: 2, bgcolor: pTheme.labelBg,
+                text: `${['a₁', 'a₂', 'f'][focus - 1]} = ${num(v)}${focus === 3 || sig ? (v >= 0.5 ? ' yes' : ' no') : ''}`,
+                font: { color, size: 13 },
+            });
         });
-        return {
-            type: 'scatter', mode: 'lines', x: xs, y: ys, hoverinfo: 'skip',
-            line: { color: strong ? COLORS.muted : pTheme.gridColor, width: strong ? 2 : 1 },
-        };
-    };
-    const movedPts = pts.map((pt) => move(pt.x1, pt.x2));
-    const grids = [gridLine(false), gridLine(true)];
-    const allX = [...grids.flatMap((g) => g.x), ...movedPts.map((q) => q[0])].filter((v) => v != null);
-    const allY = [...grids.flatMap((g) => g.y), ...movedPts.map((q) => q[1])].filter((v) => v != null);
-    const pad = (lo2, hi2) => [lo2 - 0.06 * (hi2 - lo2 || 1), hi2 + 0.06 * (hi2 - lo2 || 1)];
-    const hx = pad(Math.min(...allX), Math.max(...allX));
-    const hy = pad(Math.min(...allY), Math.max(...allY));
-    const hidden = [...grids];
-    const hAnn = [];
-    if (t === 1) {
-        const o = neuronLine({ w1: p.w211, w2: p.w212, b: p.b21, box: [hx, hy], color: COLORS.go, tint: TINT.out, label: 'output says yes', width: focus === 3 ? 5 : 3.5 });
-        hidden.push(...o.traces);
-        hAnn.push(...o.annotations);
+        ann.push({
+            x: 0.5, y: 1, xref: 'paper', yref: 'paper', yanchor: 'bottom', showarrow: false, font: { color, size: 14 },
+            text: focus === 3 ? 'The output neuron: yes in the green region' : `Neuron ${focus} alone: yes on the hatched side`,
+        });
     }
-    hidden.push(...pointTraces({ pts, xy: movedPts, yhat, showMistakes: true, hl, pTheme }));
-    const hTitle = (k) => (t === 1 ? `a${'₁₂'[k]}: neuron ${k + 1}` : t === 0 ? `x${'₁₂'[k]}` : `from x${'₁₂'[k]} to a${'₁₂'[k]}`);
 
     const cards = [
         { n: 1, title: 'Neuron 1 (layer 1)', keys: ['w111', 'w112', 'b11'], logic: l1 },
@@ -291,7 +249,7 @@ function TwoNeurons({ pTheme }) {
 
     return (
         <>
-            <div className="play-grid glass-panel">
+            <div className="plots-grid glass-panel">
                 <div className="panel">
                     <div className="panel-header">
                         <h3>The input plane: two lines, one region</h3>
@@ -299,10 +257,9 @@ function TwoNeurons({ pTheme }) {
                             <Toggle checked={show[1]} onChange={(v) => setShow({ ...show, 1: v })} color={NEURON_COLORS[0]}>neuron 1</Toggle>
                             <Toggle checked={show[2]} onChange={(v) => setShow({ ...show, 2: v })} color={NEURON_COLORS[1]}>neuron 2</Toggle>
                             <Toggle checked={show.out} onChange={(v) => setShow({ ...show, out: v })} color={COLORS.go}>output</Toggle>
-                            <Toggle checked={cloud} onChange={setCloud} color={COLORS.muted}>more points</Toggle>
                         </div>
                     </div>
-                    <Plot data={plane} layout={{ ...planeLayout(pTheme, BOX, BOX, 'x₁', 'x₂'), annotations: ann }}
+                    <Plot data={plane} layout={{ ...planeLayout(pTheme, BOX, BOX, 'x₁', 'x₂'), margin: { t: 32, r: 10, l: 50, b: 45 }, annotations: ann }}
                         config={PLOT_CONFIG} useResizeHandler style={{ width: '100%', height: '500px' }} />
                     <div className="info-card">
                         {sig ? (
@@ -323,72 +280,6 @@ function TwoNeurons({ pTheme }) {
                                 combine into a band. Switch σ back on.
                             </>
                         )}
-                    </div>
-                </div>
-                <div className="panel">
-                    <div className="panel-header">
-                        <h3>The nine numbers</h3>
-                    </div>
-                    <div className="preset-row">
-                        {PRESETS.map((pr) => (
-                            <button key={pr.key} type="button" className={`chip ${Object.keys(pr.p).every((k) => pr.p[k] === p[k]) ? 'active' : ''}`}
-                                onClick={() => setP(pr.p)}>{pr.label}</button>
-                        ))}
-                    </div>
-                    <div className="act-row">
-                        <span className="small muted">Activation of the hidden layer:</span>
-                        <ViewTabs options={[{ key: 'sigmoid', label: 'σ (sigmoid)' }, { key: 'linear', label: 'none (a = z)' }]} value={act} onChange={setAct} />
-                    </div>
-                    {cards.map((cd) => (
-                        <div key={cd.n} className={`neuron-card ${focus === cd.n ? 'focus' : ''}`} style={{ borderLeftColor: NEURON_COLORS[cd.n - 1] }}
-                            onMouseEnter={() => setFocus(cd.n)} onMouseLeave={() => setFocus(null)}>
-                            <div className="neuron-card-head">
-                                <strong style={{ color: NEURON_COLORS[cd.n - 1] }}>{cd.title}</strong>
-                                {cd.logic && <span className="small muted">{cd.n === 3 ? cd.logic.question : `“${cd.logic.question}”`}</span>}
-                            </div>
-                            <div className="slider-trio">
-                                {cd.keys.map((key) => (
-                                    <ParamSlider key={key} label={<>{symOf(key)} <span className="muted small">{fromOf(key)}</span></>} value={p[key]}
-                                        min={key[0] === 'b' ? -30 : -20} max={key[0] === 'b' ? 30 : 20} step={0.5} onChange={set(key)} />
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                    <div className="metrics-grid">
-                        <Metric value={`${wrong} / 4`} label="mistakes on the four XOR points" className={wrong ? 'decision no' : 'decision yes'} />
-                        <Metric value={net.name === 'XOR' ? 'XOR ✓' : net.name || '—'} label={<>the network answers: “{net.question}”</>}
-                            className={net.name === 'XOR' ? 'decision yes' : ''} />
-                    </div>
-                </div>
-            </div>
-
-            <div className="controls glass-panel">
-                <div className="panel">
-                    <div className="panel-header">
-                        <h3>What the output neuron sees</h3>
-                        <div className="btn-row">
-                            <button className="btn btn-secondary" type="button" onClick={playMorph}><Play size={16} /> Move the points</button>
-                            <button className="btn btn-secondary" type="button" onClick={() => { cancelAnimationFrame(raf.current); setT(1); }}>
-                                <RotateCcw size={16} /> End
-                            </button>
-                        </div>
-                    </div>
-                    <div className="slider-container in-row">
-                        <div className="slider-header">
-                            <span>each point: from its inputs <Sym b="x" vec /> to the hidden answers <Sym b="a" vec l={1} /> = (a₁, a₂)</span>
-                            <span className="in-val">{num(t)}</span>
-                        </div>
-                        <input type="range" min={0} max={1} step={0.01} value={t} onChange={(e) => { cancelAnimationFrame(raf.current); setT(Number(e.target.value)); }} />
-                    </div>
-                    <Plot data={hidden} layout={{ ...planeLayout(pTheme, hx, hy, hTitle(0), hTitle(1)), annotations: hAnn, uirevision: `${act}` }}
-                        config={PLOT_CONFIG} useResizeHandler style={{ width: '100%', height: '440px' }} />
-                    <div className="info-card">
-                        The hidden layer moves every point to (a₁, a₂): its two answers. The gray grid is the input plane, carried along.{' '}
-                        {sig
-                            ? <>It <strong>bends</strong>, because σ is not a straight line: that bending is the non-linearity. At the end, one
-                                straight line, the output neuron’s, can separate the crosses from the circles.</>
-                            : <>Without σ it only stretches and turns: straight lines stay straight, the points stay in their XOR pattern, and no
-                                straight line can separate them.</>}
                     </div>
                 </div>
                 <div className="panel">
@@ -419,7 +310,46 @@ function TwoNeurons({ pTheme }) {
                             })}
                         </tbody>
                     </table>
-                    <div className="hint">Click a row to show that point on the network; point at a row to find it on both plots.</div>
+                    <div className="hint">
+                        Point at a neuron (here or at its card below) to see its decision boundary alone on the plot. Click a row to show
+                        that point on the network; point at a row to find it on the plot.
+                    </div>
+                </div>
+            </div>
+
+            <div className="glass-panel weights-panel">
+                <div className="weights-head">
+                    <h3>The nine numbers</h3>
+                    <div className="preset-row">
+                        {PRESETS.map((pr) => (
+                            <button key={pr.key} type="button" className={`chip ${Object.keys(pr.p).every((k) => pr.p[k] === p[k]) ? 'active' : ''}`}
+                                onClick={() => setP(pr.p)}>{pr.label}</button>
+                        ))}
+                    </div>
+                    <div className="act-row">
+                        <span className="small muted">Activation of the hidden layer:</span>
+                        <ViewTabs options={[{ key: 'sigmoid', label: 'σ (sigmoid)' }, { key: 'linear', label: 'none (a = z)' }]} value={act} onChange={setAct} />
+                    </div>
+                </div>
+                <div className="cards-row">
+                    {cards.map((cd) => (
+                        <div key={cd.n} className={`neuron-card ${focus === cd.n ? 'focus' : ''}`} style={{ borderLeftColor: NEURON_COLORS[cd.n - 1] }}
+                            onMouseEnter={() => setFocus(cd.n)} onMouseLeave={() => setFocus(null)}>
+                            <div className="neuron-card-head">
+                                <strong style={{ color: NEURON_COLORS[cd.n - 1] }}>{cd.title}</strong>
+                                {cd.logic && <span className="small muted">{cd.n === 3 ? cd.logic.question : `“${cd.logic.question}”`}</span>}
+                            </div>
+                            {cd.keys.map((key) => (
+                                <ParamSlider key={key} label={<>{symOf(key)} <span className="muted small">{fromOf(key)}</span></>} value={p[key]}
+                                    min={key[0] === 'b' ? -30 : -20} max={key[0] === 'b' ? 30 : 20} step={0.5} onChange={set(key)} />
+                            ))}
+                        </div>
+                    ))}
+                </div>
+                <div className="metrics-grid">
+                    <Metric value={`${wrong} / 4`} label="mistakes on the four XOR points" className={wrong ? 'decision no' : 'decision yes'} />
+                    <Metric value={net.name === 'XOR' ? 'XOR ✓' : net.name || '—'} label={<>the network answers: “{net.question}”</>}
+                        className={net.name === 'XOR' ? 'decision yes' : ''} />
                 </div>
             </div>
         </>

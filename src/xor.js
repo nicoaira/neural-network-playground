@@ -9,24 +9,6 @@ export const XOR = [
     { x1: 1, x2: 1, y: 0 },
 ];
 
-// A few more points around each corner (fixed seed), to see the regions better.
-function mulberry32(seed) {
-    let a = seed;
-    return () => {
-        a |= 0;
-        a = (a + 0x6d2b79f5) | 0;
-        let t = Math.imul(a ^ (a >>> 15), 1 | a);
-        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-}
-const rand = mulberry32(7);
-const gauss = () => Math.sqrt(-2 * Math.log(1 - rand())) * Math.cos(2 * Math.PI * rand());
-const clip = (v) => Math.min(1.4, Math.max(-0.4, v));
-export const CLOUD = XOR.flatMap((p) => Array.from({ length: 12 }, () => ({
-    x1: clip(p.x1 + 0.12 * gauss()), x2: clip(p.x2 + 0.12 * gauss()), y: p.y,
-})));
-
 // The nine numbers of the 2-2-1 network, named as in the course: w{l}{j}{k} = w^[l]_{j,k} (from input k into
 // neuron j of layer l) and b{l}{j} = b^[l]_j.
 export const PARAMS = [
