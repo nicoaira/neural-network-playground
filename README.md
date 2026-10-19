@@ -22,7 +22,19 @@ quiet.
     example or for m = 4 examples at once (X W + B). Point at a weight in W and it lights up in the matrix, on its line
     in the network, and in the sum it belongs to; point at a z to see its row-times-column computation.
 
-The weights are the illustrative ones of the slides, chosen by hand (not trained). The colors of the indices follow
+- **Step 3: The XOR problem.** y = 1 when exactly one of x₁, x₂ is 1.
+  - *One neuron is not enough*: move the straight line of a single neuron (logistic regression); it always gets at
+    least one of the four points wrong.
+  - *Two hidden neurons*: each hidden neuron draws one straight line and says yes on its hatched side (neuron 1
+    amber, neuron 2 violet). The output neuron combines their answers: with an AND the green region is the overlap
+    of the two sides (where the hatches cross), a band no single line can draw. All nine numbers have sliders, with
+    presets (OR + NAND → AND, the same sharper, two corners combined with an OR, two identical neurons that fail),
+    and the labels say what each neuron computes ("at least one on? (OR)"). A second plot moves every point from
+    its inputs x⃗ to the hidden answers a⃗^[1], dragging the input grid along: σ bends it, and at the end one
+    straight line separates the classes. Switch the hidden activation off (a = z) to see the network collapse back
+    to one straight line.
+
+The weights of the beach network are the illustrative ones of the slides, chosen by hand (not trained). The colors of the indices follow
 the slides: layer [l] orange, neuron j blue, input k gray, example (i) green.
 
 ## Run locally

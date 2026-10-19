@@ -720,3 +720,42 @@ input[type=range]::-webkit-slider-runnable-track {
   .play-grid, .matrix-net { grid-template-columns: 1fr; }
   .neuron-grid > .panel:first-child { position: static; }
 }
+
+/* Step 3: the XOR problem */
+.xor-intro { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; flex-wrap: wrap; padding: 1rem 1.5rem; }
+.xor-intro-text { display: flex; flex-direction: column; gap: 0.6rem; flex: 1; min-width: 260px; max-width: 760px; line-height: 1.55; }
+.xor-intro-text h3 { margin: 0; color: var(--accent); }
+.xor-intro-text .view-tabs { width: fit-content; }
+.xor-table { border-collapse: collapse; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.85rem; }
+.xor-table th, .xor-table td { padding: 0.3rem 0.65rem; text-align: center; border-bottom: 1px solid var(--border-color); }
+.xor-table th { font-family: Inter, system-ui, sans-serif; font-weight: 600; }
+.xor-table tbody tr { cursor: pointer; transition: background 0.12s; }
+.xor-table tbody tr.hover { background: var(--nav-bg); }
+.xor-table tbody tr.sel { background: var(--hl-bg); }
+.xor-table.truth tbody tr { cursor: default; }
+.xor-table td.ok { color: var(--accent); font-weight: 700; }
+.xor-table td.bad { color: var(--no); font-weight: 700; }
+.toggle-row { display: flex; gap: 0.9rem; flex-wrap: wrap; }
+.act-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.neuron-card {
+  border: 1px solid var(--border-color);
+  border-left: 4px solid;
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  background: var(--card-bg);
+  transition: box-shadow 0.15s;
+}
+.neuron-card.focus { box-shadow: 0 0 0 2px var(--hl); }
+.neuron-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+.slider-trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem 0.8rem; }
+.slider-trio .slider-header { flex-wrap: wrap; font-size: 0.82rem; }
+.xor-net .net-lab { font-size: max(10px, calc(100cqw * 15 / 690)); }
+.xor-q { line-height: 1.2; }
+.xor-q .small-q { font-size: 0.85em; font-weight: 600; }
+@media (max-width: 700px) {
+  .net.xor-net { min-width: 0; }
+  .slider-trio { grid-template-columns: 1fr; }
+}

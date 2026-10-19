@@ -3,14 +3,18 @@ import { Sun, Moon } from 'lucide-react';
 import { PRESETS, toX, forward } from './network';
 import Playground from './Playground';
 import Inside from './Inside';
+import XorView from './XorView';
 import { Sym } from './Sym';
 
+const HASHES = ['#play', '#inside', '#xor'];
+const stepOf = (hash) => Math.max(1, HASHES.indexOf(hash) + 1);
+
 export default function App() {
-    // The URL hash selects the tab, so a link can open Step 2 directly (…/#inside).
-    const [step, setStepState] = useState(() => (window.location.hash === '#inside' ? 2 : 1));
+    // The URL hash selects the tab, so a link can open a step directly (…/#inside, …/#xor).
+    const [step, setStepState] = useState(() => stepOf(window.location.hash));
     const setStep = (s) => {
         setStepState(s);
-        window.history.replaceState(null, '', s === 2 ? '#inside' : '#play');
+        window.history.replaceState(null, '', HASHES[s - 1]);
     };
     const [theme, setTheme] = useState('dark');
     // What you know about the afternoon, shared by both steps (see INPUTS in network.js).
@@ -21,7 +25,7 @@ export default function App() {
         document.documentElement.setAttribute('data-theme', theme);
     }, [theme]);
     useEffect(() => {
-        const onHash = () => setStepState(window.location.hash === '#inside' ? 2 : 1);
+        const onHash = () => setStepState(stepOf(window.location.hash));
         window.addEventListener('hashchange', onHash);
         return () => window.removeEventListener('hashchange', onHash);
     }, []);
@@ -56,11 +60,14 @@ export default function App() {
                 <div className={`nav-tab ${step === 2 ? 'active' : ''}`} onClick={() => setStep(2)}>
                     Step 2: Inside the computation
                 </div>
+                <div className={`nav-tab ${step === 3 ? 'active' : ''}`} onClick={() => setStep(3)}>
+                    Step 3: The XOR problem
+                </div>
             </div>
 
-            {step === 1
-                ? <Playground raw={raw} setRaw={setRaw} pTheme={pTheme} />
-                : <Inside raw={raw} setRaw={setRaw} fw={fw} pTheme={pTheme} />}
+            {step === 1 && <Playground raw={raw} setRaw={setRaw} pTheme={pTheme} />}
+            {step === 2 && <Inside raw={raw} setRaw={setRaw} fw={fw} pTheme={pTheme} />}
+            {step === 3 && <XorView pTheme={pTheme} />}
 
             <div className="footer">
                 Illustrative weights chosen by hand, not trained (the Deep Learning class slides). Every neuron computes
