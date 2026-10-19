@@ -193,31 +193,35 @@ function TwoNeurons({ pTheme }) {
             }
         }
     }
-    // Pointing at a neuron (on the network or at its card) shows it alone: its decision boundary, its yes side,
-    // and its answer at each of the four points.
-    const shown = focus ? { 1: focus === 1, 2: focus === 2, out: focus === 3 } : show;
+    // A neuron's boundary is on the plot while it is checked (above the plot, or by clicking the neuron) or pointed at
+    // (on the network or at its card). The one pointed at is shown with its answer at each of the four points, and the
+    // other checked ones fade.
+    const KEY = { 1: 1, 2: 2, 3: 'out' };
+    const vis = (n) => show[KEY[n]] || focus === n;
+    const fade = (n) => (focus && focus !== n ? 0.25 : 1);
+    const toggle = (n) => setShow((s) => ({ ...s, [KEY[n]]: !s[KEY[n]] }));
     const plane = [];
     const ann = [];
-    if (shown.out) {
+    if (vis(3)) {
         plane.push({
             type: 'heatmap', x: G, y: G, z: fGrid.map((row) => row.map((f) => (f >= 0.5 ? 1 : null))), zsmooth: false, showscale: false,
-            colorscale: [[0, TINT.out], [1, TINT.out]], hoverinfo: 'skip',
+            colorscale: [[0, TINT.out], [1, TINT.out]], hoverinfo: 'skip', opacity: fade(3),
         });
     }
     [1, 2].forEach((j) => {
-        if (!shown[j]) return;
+        if (!vis(j)) return;
         const w = neuronLine({
             w1: p[`w1${j}1`], w2: p[`w1${j}2`], b: p[`b1${j}`], box: [BOX, BOX], color: NEURON_COLORS[j - 1], hatch: HATCH[j],
-            label: focus ? '' : `neuron ${j} says yes`, width: focus === j ? 4 : 2.5,
+            label: focus ? '' : `neuron ${j} says yes`, width: focus === j ? 4 : 2.5, opacity: fade(j),
             at: ats[j - 1],
         });
         plane.push(...w.traces);
         ann.push(...w.annotations);
     });
-    if (shown.out) {
+    if (vis(3)) {
         plane.push({
             type: 'contour', x: G, y: G, z: fGrid, autocontour: false, contours: { start: 0.5, end: 0.5, size: 1, coloring: 'lines' },
-            colorscale: [[0, COLORS.go], [1, COLORS.go]], line: { width: focus === 3 ? 13 : 9 }, opacity: 0.85, showscale: false, hoverinfo: 'skip',
+            colorscale: [[0, COLORS.go], [1, COLORS.go]], line: { width: focus === 3 ? 13 : 9 }, opacity: 0.85 * fade(3), showscale: false, hoverinfo: 'skip',
         });
     }
     plane.push(...pointTraces({ pts, xy: pts.map((pt) => [pt.x1, pt.x2]), yhat, showMistakes: true, hl, pTheme }));
@@ -234,7 +238,7 @@ function TwoNeurons({ pTheme }) {
         });
         ann.push({
             x: 0.5, y: 1, xref: 'paper', yref: 'paper', yanchor: 'bottom', showarrow: false, font: { color, size: 14 },
-            text: focus === 3 ? 'The output neuron: yes in the green region' : `Neuron ${focus} alone: yes on the hatched side`,
+            text: focus === 3 ? 'The output neuron: yes in the green region' : `Neuron ${focus}: yes on the hatched side`,
         });
     }
 
@@ -285,6 +289,7 @@ function TwoNeurons({ pTheme }) {
                 <div className="panel">
                     <h3>The network, for one point</h3>
                     <XorDiagram p={p} fw={big[sel]} x={x} act={act} focus={focus} onFocus={setFocus}
+                        checked={[show[1], show[2], show.out]} onToggle={toggle}
                         questions={[l1.question, l2.question, sig ? (lo.name ? `${lo.name} of the two answers` : lo.question) : 'no σ before it']} />
                     <table className="xor-table">
                         <thead>
@@ -311,8 +316,9 @@ function TwoNeurons({ pTheme }) {
                         </tbody>
                     </table>
                     <div className="hint">
-                        Point at a neuron (here or at its card below) to see its decision boundary alone on the plot. Click a row to show
-                        that point on the network; point at a row to find it on the plot.
+                        Point at a neuron (here or at its card below) to see its decision boundary on the plot; click it to keep the
+                        boundary there, like the checkboxes above the plot. Click a row to show that point on the network; point at a row
+                        to find it on the plot.
                     </div>
                 </div>
             </div>

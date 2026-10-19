@@ -29,8 +29,9 @@ const pct = (x, y) => ({ left: `${(100 * x) / VW}%`, top: `${(100 * y) / VH}%` }
 
 // p: the nine parameters; fw: the forward pass of the selected point; x: its inputs [x1, x2];
 // focus: the neuron pointed at elsewhere (1, 2 or 3 for the output); onFocus: report the neuron pointed at here;
+// checked: whether each neuron's boundary is kept on the plot; onToggle(n): a neuron (or its name) was clicked;
 // questions: what each neuron answers, in words.
-export default function XorDiagram({ p, fw, x, act, focus, onFocus, questions }) {
+export default function XorDiagram({ p, fw, x, act, focus, onFocus, checked, onToggle, questions }) {
     const wrap = useRef(null);
     const [tip, setTip] = useState(null);
     const where = (e) => {
@@ -43,6 +44,8 @@ export default function XorDiagram({ p, fw, x, act, focus, onFocus, questions })
         onMouseLeave: () => { setTip(null); onFocus?.(null); },
     });
     const dim = (n) => (focus && focus !== n ? 0.3 : 1);
+    // A neuron's name works like its checkbox above the plot.
+    const name = (n) => ({ onClick: () => onToggle?.(n), onMouseEnter: () => onFocus?.(n), onMouseLeave: () => onFocus?.(null), title: 'click: keep its boundary on the plot' });
     const wOf = (e) => p[`w${e.l}${e.j}${e.k}`];
     const srcOf = (e) => (e.l === 1 ? x[e.k - 1] : [fw.a1, fw.a2][e.k - 1]);
     const zs = [fw.z1, fw.z2, fw.z];
@@ -86,7 +89,7 @@ export default function XorDiagram({ p, fw, x, act, focus, onFocus, questions })
                     const a = as[n - 1];
                     const sig = l === 2 || act === 'sigmoid';
                     return (
-                        <g key={n} className="net-part net-node" style={{ opacity: dim(n) }}
+                        <g key={n} className="net-part net-node" style={{ opacity: dim(n) }} onClick={() => onToggle?.(n)}
                             {...hit(
                                 <>
                                     <div className="tip-title">{l === 1 ? `Neuron ${j} of layer 1` : 'The output neuron'}</div>
@@ -99,6 +102,9 @@ export default function XorDiagram({ p, fw, x, act, focus, onFocus, questions })
                                     <div className="tip-note">
                                         {l === 1 ? <>Its line on the input plane: {wnum(ws[0])} x₁ + {par(wnum(ws[1]), ws[1])} x₂ + {par(wnum(bias), bias)} = 0.</>
                                             : <>f, the answer of the network: <Yhat /> = {fw.yhat}.</>}
+                                    </div>
+                                    <div className="tip-note">
+                                        {checked[n - 1] ? 'Click to take its boundary off the plot.' : 'Click to keep its boundary on the plot.'}
                                     </div>
                                 </>, n,
                             )}>
@@ -121,8 +127,9 @@ export default function XorDiagram({ p, fw, x, act, focus, onFocus, questions })
             ))}
             {HID.map((c, j) => (
                 <React.Fragment key={j}>
-                    <div className="net-lab center xor-q" style={{ ...pct(c.x, j === 0 ? c.y - R_H - 30 : c.y + R_H + 30), color: NEURON_COLORS[j], opacity: dim(j + 1) }}>
-                        <div className="strong">neuron {j + 1}</div>
+                    <div className="net-lab center xor-q hot" style={{ ...pct(c.x, j === 0 ? c.y - R_H - 30 : c.y + R_H + 30), color: NEURON_COLORS[j], opacity: dim(j + 1) }}
+                        {...name(j + 1)}>
+                        <div className="strong"><span className={`mini-check ${checked[j] ? 'on' : ''}`} />neuron {j + 1}</div>
                         <div className="small-q">{questions[j]}</div>
                     </div>
                     <div className="net-lab left pill" style={{ ...pct(c.x + R_H + 6, c.y + (j === 0 ? -26 : 26)), opacity: dim(j + 1) }}>
@@ -130,8 +137,8 @@ export default function XorDiagram({ p, fw, x, act, focus, onFocus, questions })
                     </div>
                 </React.Fragment>
             ))}
-            <div className="net-lab center xor-q" style={{ ...pct(OUT.x, OUT.y - R_O - 30), color: NEURON_COLORS[2], opacity: dim(3) }}>
-                <div className="strong">output</div>
+            <div className="net-lab center xor-q hot" style={{ ...pct(OUT.x, OUT.y - R_O - 30), color: NEURON_COLORS[2], opacity: dim(3) }} {...name(3)}>
+                <div className="strong"><span className={`mini-check ${checked[2] ? 'on' : ''}`} />output</div>
                 <div className="small-q">{questions[2]}</div>
             </div>
             <div className="net-lab left out" style={pct(OUT.x + R_O + 46, OUT.y)}>

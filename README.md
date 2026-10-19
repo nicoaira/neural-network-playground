@@ -29,7 +29,8 @@ quiet.
     side (neuron 1 amber, neuron 2 violet). The output neuron combines their answers: with an AND the green region
     is the overlap of the two sides (where the hatches cross), a band no single line can draw. Next to the plot, the
     network for one of the four points and a table of a₁, a₂, f, ŷ and y; point at a neuron (on the network or at its
-    card) to see its decision boundary alone on the plot, with its answer at each point. Below, all nine numbers have
+    card) to see its decision boundary on the plot, with its answer at each point, and click it (or its name) to keep
+    the boundary there, like the checkboxes above the plot. Below, all nine numbers have
     sliders, with presets (OR + NAND → AND, the same sharper, two corners combined with an OR, two identical neurons
     that fail), and the labels say what each neuron computes ("at least one on? (OR)"). Switch the hidden activation
     off (a = z) to see the network collapse back to one straight line.
