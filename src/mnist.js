@@ -31,6 +31,20 @@ export function forward(x) {
     return { x, a1, a2, z3, p, best };
 }
 
+// A drawing (gray levels in [0, 1], w × h, w and h multiples of 28) → the 784 inputs, exactly where it was drawn:
+// each pixel is the average of its square of the drawing (10 × 10 for a 280 × 280 drawing).
+export function downsample(gray, w, h) {
+    const out = new Float32Array(N_IN);
+    const sx = w / SIZE;
+    const sy = h / SIZE;
+    for (let y = 0; y < h; y++) {
+        const r = Math.floor(y / sy);
+        for (let x = 0; x < w; x++) out[r * SIZE + Math.floor(x / sx)] += gray[y * w + x];
+    }
+    for (let i = 0; i < N_IN; i++) out[i] /= sx * sy;
+    return out;
+}
+
 // A drawing (gray levels in [0, 1], w × h) → the 784 inputs, prepared the way MNIST was: the digit is scaled to fit
 // a 20 × 20 box (keeping its proportions), then placed in the 28 × 28 image with its center of mass at the center.
 export function preprocess(gray, w, h) {

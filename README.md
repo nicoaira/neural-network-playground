@@ -37,7 +37,8 @@ quiet.
 
 - **Step 4: Handwritten digits.** A small network trained on MNIST: 784 inputs (the 28 × 28 pixels, row by row), two
   hidden layers of 16 neurons and 10 outputs, one chance per digit. Draw a digit with the mouse, a finger or a pen (or
-  pick one of 30 test images) and every neuron lights up as you draw, with the chance of each digit next to the
+  pick one of 30 test images) and every neuron lights up as you draw. Each 10 × 10 square of the drawing is one
+  pixel, where you draw it (an option resizes and centers the digit as in MNIST instead), with the chance of each digit next to the
   outputs. The image can be expanded into its 784 inputs (x₁ … x₆, ⋮, x₇₇₉ … x₇₈₄); point at any pixel to bring its
   input and its lines into the column. Below, the 784 weights of each neuron of layer 1 are drawn as a 28 × 28 image,
   or multiplied by your drawing. It gets 95.7 % of the 10 000 test images right.

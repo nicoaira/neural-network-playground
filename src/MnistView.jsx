@@ -3,7 +3,7 @@ import { Eraser, Shuffle, Maximize2, Minimize2 } from 'lucide-react';
 import { MODEL, SAMPLES, H1, H2, N_IN, forward, weightsOf } from './mnist';
 import { num } from './network';
 import { Sym } from './Sym';
-import { COLORS, ViewTabs } from './ui';
+import { COLORS, Toggle, ViewTabs } from './ui';
 import DrawPad from './DrawPad';
 import MnistDiagram, { TinyImage } from './MnistDiagram';
 
@@ -19,6 +19,10 @@ export default function MnistView({ dark }) {
     const [expanded, setExpanded] = useState(true);
     const [hov, setHov] = useState(null);
     const [tiles, setTiles] = useState('w'); // the layer-1 images: 'w' (the weights) or 'xw' (your drawing × the weights)
+    const [center, setCenter] = useState(false); // resize and center the drawing as in MNIST before it goes in
+    useEffect(() => {
+        if (sample == null) pad.current?.refresh();
+    }, [center]); // eslint-disable-line react-hooks/exhaustive-deps
     const fw = useMemo(() => forward(x), [x]);
     const blank = !x.some((v) => v > 0);
 
@@ -61,9 +65,16 @@ export default function MnistView({ dark }) {
                             <button className="btn btn-secondary btn-small" type="button" onClick={another}><Shuffle size={16} /> Example</button>
                         </div>
                     </div>
-                    <DrawPad ref={pad} onInput={setX} onStart={() => setSample(null)} />
+                    <DrawPad ref={pad} onInput={setX} onStart={() => setSample(null)} center={center}
+                        onPixel={(i) => setHov(i == null || center ? null : { type: 'x', i })} />
+                    <Toggle checked={center} onChange={setCenter} color={COLORS.go}>Resize and center the digit, as in MNIST</Toggle>
+                    <div className="hint">
+                        {center
+                            ? 'Your drawing is resized to fit 20 × 20 pixels and moved to the center, as the MNIST images were: small or off-center digits are recognized better, but the image no longer matches where you draw.'
+                            : 'Each small square of the grid is one of the 28 × 28 pixels, exactly where you draw it: the bottom-right corner is x₇₈₄. Draw large and in the middle, as in the MNIST images.'}
+                    </div>
                     <div className="answer">
-                        {blank ? <span className="muted">Draw a digit in the black square, as large as you can.</span> : (
+                        {blank ? <span className="muted">Draw a digit in the black square.</span> : (
                             <>
                                 <span className="muted">The network says</span>
                                 <span className="answer-digit">{fw.best}</span>
@@ -101,8 +112,8 @@ export default function MnistView({ dark }) {
                             <>
                                 The image is laid out <strong>row by row</strong>: row 1 gives the inputs <Sym b="x" j={1} /> to{' '}
                                 <Sym b="x" j={28} />, row 2 gives <Sym b="x" j={29} /> to <Sym b="x" j={56} />, … and row 28 ends with{' '}
-                                <Sym b="x" j={784} />. Only the first and the last inputs are drawn (the corners, always black); point at any
-                                pixel to see its input and its lines.{' '}
+                                <Sym b="x" j={784} />. Only the first and the last inputs are drawn (the top-left and bottom-right corners of the
+                                image); point at any pixel, here or on the drawing, to see its input and its lines.{' '}
                             </>
                         ) : 'All 784 pixels go into every neuron of layer 1: 784 × 16 weights. '}
                         Brighter neurons are <strong>more active</strong>. Each line shows its signal, activation × weight:{' '}
