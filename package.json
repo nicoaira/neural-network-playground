@@ -1,0 +1,24 @@
+{
+  "name": "neural-network-playground",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "description": "Interactive playground: a small neural network (the beach decision), its weights, the dot product, the sigmoid and the matrix form of a layer.",
+  "license": "ISC",
+  "dependencies": {
+    "lucide-react": "^1.8.0",
+    "plotly.js-dist-min": "^3.5.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-plotly.js": "^2.6.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
+    "vite": "^6.4.2"
+  }
+}
